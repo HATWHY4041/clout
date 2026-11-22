@@ -16,10 +16,31 @@ export interface TokenClout {
   at: number; // unix secs
 }
 
+const mem = new Map<string, { at: number; data: any }>();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** GeckoTerminal GET with an in-memory cache, the Next data cache, and backoff on rate limits. */
 async function gt(path: string, revalidate = 60): Promise<any> {
-  const res = await fetch(`${GT}${path}`, { headers: HEADERS, next: { revalidate } } as any);
-  if (!res.ok) throw new Error(`GeckoTerminal ${res.status} on ${path}`);
-  return res.json();
+  const hit = mem.get(path);
+  if (hit && revalidate > 0 && Date.now() - hit.at < revalidate * 1000) return hit.data;
+  let last = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(`${GT}${path}`, {
+      headers: HEADERS,
+      ...(revalidate > 0 ? { next: { revalidate } } : { cache: "no-store" }),
+    } as any);
+    if (res.ok) {
+      const data = await res.json();
+      mem.set(path, { at: Date.now(), data });
+      return data;
+    }
+    last = res.status;
+    if (res.status !== 429 && res.status < 500) break;
+    await sleep(1200 * 2 ** attempt);
+  }
+  // Rate-limited: fall back to the last good reading if it is recent (≤ 10 min).
+  if (hit && Date.now() - hit.at < 600_000) return hit.data;
+  throw new Error(last === 429 ? "Score data is busy right now. Try again in a few seconds." : `GeckoTerminal error ${last}`);
 }
 
 const num = (v: any) => (v == null || v === "" ? 0 : Number(v) || 0);

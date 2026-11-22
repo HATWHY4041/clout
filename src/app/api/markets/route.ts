@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const recent = (await listMarkets()).filter((m) => m.openedAt > Date.now() / 1000 - 3600);
     if (recent.length >= 30) throw new Error("Lots of markets opened this hour. Try again in a few minutes.");
 
-    const clout = await getTokenClout(String(body.mint), 0);
+    const clout = await getTokenClout(String(body.mint), 30);
     const threshold = Math.round(Number(body.threshold ?? Math.ceil(clout.score)));
     if (!(threshold >= 1 && threshold <= 99)) throw new Error("Target score must be between 1 and 99");
 

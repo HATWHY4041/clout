@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { USDC_MINT } from "@/lib/config";
-import { connection, faucet, houseKeypair } from "@/lib/house";
+import { connection, faucet, houseKeypair, perpsProgramKeypair } from "@/lib/house";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ async function status() {
     .getTokenAccountBalance(getAssociatedTokenAddressSync(USDC_MINT, pk))
     .then((b) => Number(b.value.uiAmount ?? 0))
     .catch(() => 0);
-  return { house: pk.toBase58(), sol, usdc };
+  return { house: pk.toBase58(), sol, usdc, perpsProgram: perpsProgramKeypair().publicKey.toBase58() };
 }
 
 /** Public: the house wallet address and balances (for transparency). ?topup=1 refills it from free devnet faucets. */

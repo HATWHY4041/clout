@@ -26,6 +26,15 @@ export function houseKeypair(): Keypair {
   return cached;
 }
 
+function derive(label: string): Keypair {
+  const base = process.env.HOUSE_SECRET_KEY || process.env.BLOB_READ_WRITE_TOKEN;
+  if (!base) throw new Error("House wallet not configured");
+  return Keypair.fromSeed(createHash("sha256").update(`${label}:${base}`).digest());
+}
+
+/** Keypair for the Clout Perps program address (only needed once, to create it). */
+export const perpsProgramKeypair = () => derive("clout-perps-program-v1");
+
 export function houseClient(): PmAmmClient {
   const kp = houseKeypair();
   const sign = <T extends Transaction | VersionedTransaction>(tx: T): T => {

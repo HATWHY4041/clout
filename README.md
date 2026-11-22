@@ -1,5 +1,7 @@
 # Clout: trade the hype, not the price
 
+**Live demo:** https://clout-hype.vercel.app
+
 **Clout** turns any tweet into a prediction market on a token's *hype*.
 
 - **Clout Score (0–100):** a live attention meter for every Solana token, built only from free, public trading data (GeckoTerminal): last-hour momentum, unique buyers, buy pressure and scale. Every input is shown and linked, so anyone can recompute it.
@@ -19,4 +21,4 @@ Next.js on Vercel (free plan), `@pm-amm/sdk`, Vercel Blob for market metadata, G
 ## Config
 - `BLOB_READ_WRITE_TOKEN`: Vercel Blob (added automatically when the store is connected)
 - `HOUSE_SECRET_KEY` (optional): base58 devnet keypair. If it's unset, the house wallet is derived from the server-side Blob secret.
-- GitHub repo variable `SITE_URL`: the live URL, used by the settle schedule
+- GitHub repo variable `SITE_URL` (optional): the live URL for the settle schedule (defaults to https://clout-hype.vercel.app)

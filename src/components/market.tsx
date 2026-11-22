@@ -51,7 +51,7 @@ export function MarketView({ id, site }: { id: number; site: string }) {
   const resolved = cm?.resolved;
   const won = resolved ? (cm!.winningSide === 1 ? pos.yes : pos.no) : 0;
   const pageUrl = `${site}/m/${id}`;
-  const blinkUrl = `https://dial.to/?action=${encodeURIComponent(`solana-action:${site}/api/actions/market/${id}`)}&cluster=devnet`;
+  const blinkUrl = `/blink/${id}`;
   const est = cm && amount > 0 ? quoteBuy(cm, side, Math.floor(amount * 1e6)) / 1e6 : 0;
 
   async function trade(action: "buy" | "sell", s: "yes" | "no", raw: number) {

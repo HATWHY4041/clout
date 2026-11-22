@@ -60,14 +60,27 @@ export async function getTokenClout(mint: string, revalidate = 60): Promise<Toke
 }
 
 /** Find a Solana token mint by ticker (e.g. "WIF"), picking the most liquid match. */
+/** Well-known tickers, so copycat tokens with the same symbol never win. */
+const KNOWN: Record<string, string> = {
+  BONK: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  WIF: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+  JUP: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+  POPCAT: "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+  TRUMP: "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+  PENGU: "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
+  FARTCOIN: "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump",
+  SOL: "So11111111111111111111111111111111111111112",
+};
+
 export async function findMintByTicker(ticker: string): Promise<string | null> {
   const t = ticker.replace(/^\$/, "").toUpperCase();
+  if (KNOWN[t]) return KNOWN[t];
   const data = await gt(`/search/pools?query=${encodeURIComponent(t)}&network=solana&include=base_token`, 300);
   const tokens = new Map<string, string>();
-  for (const inc of data.included || []) tokens.set(inc.id, (inc.attributes?.symbol || "").toUpperCase());
+  for (const inc of data.included || []) tokens.set(inc.id, (inc.attributes?.symbol || "").replace(/^\$/, "").toUpperCase());
   const matches = (data.data || [])
     .filter((p: any) => tokens.get(p.relationships?.base_token?.data?.id) === t)
-    .sort((a: any, b: any) => num(b.attributes.reserve_in_usd) - num(a.attributes.reserve_in_usd));
+    .sort((a: any, b: any) => num(b.attributes.volume_usd?.h24) - num(a.attributes.volume_usd?.h24));
   const id: string | undefined = matches[0]?.relationships?.base_token?.data?.id;
   return id ? id.replace(/^solana_/, "") : null;
 }

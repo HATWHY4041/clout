@@ -1,0 +1,12 @@
+name: Settle closed markets
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Settle markets and record Clout
+        run: |
+          curl -sS -m 60 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.SITE_URL }}/api/cron"

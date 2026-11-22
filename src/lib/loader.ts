@@ -137,7 +137,7 @@ export async function deploy() {
   const buffer = new PublicKey(s.buffer);
 
   if (!s.deployed) {
-    const maxLen = s.soBytes * 2;
+    const maxLen = Math.ceil(s.soBytes * 1.25);
     const lamports = await connection.getMinimumBalanceForRentExemption(36);
     const tx = new Transaction().add(
       SystemProgram.createAccount({ fromPubkey: house.publicKey, newAccountPubkey: program, lamports, space: 36, programId: LOADER }),

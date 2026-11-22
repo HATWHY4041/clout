@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { USDC_MINT } from "@/lib/config";
@@ -16,13 +16,20 @@ async function status() {
   return { house: pk.toBase58(), sol, usdc };
 }
 
-/** Public: the house wallet address and balances (for transparency). */
-export async function GET() {
-  return NextResponse.json(await status());
-}
-
-/** Top the house wallet up from the free pm-AMM devnet faucet. */
-export async function POST() {
-  const r = await faucet(houseKeypair().publicKey);
-  return NextResponse.json({ faucet: r.body, status: r.status, ...(await status()) });
+/** Public: the house wallet address and balances (for transparency). ?topup=1 refills it from free devnet faucets. */
+export async function GET(req: NextRequest) {
+  if (!req.nextUrl.searchParams.get("topup")) return NextResponse.json(await status());
+  const pk = houseKeypair().publicKey;
+  const r = await faucet(pk).catch((e) => ({ ok: false, body: { error: e.message }, status: 0 }));
+  let airdrop: string | null = null;
+  if ((await connection.getBalance(pk)) < 0.5 * LAMPORTS_PER_SOL) {
+    try {
+      const sig = await connection.requestAirdrop(pk, LAMPORTS_PER_SOL);
+      await connection.confirmTransaction(sig, "confirmed");
+      airdrop = sig;
+    } catch (e: any) {
+      airdrop = `failed: ${e.message?.slice(0, 120)}`;
+    }
+  }
+  return NextResponse.json({ faucet: r.body, faucetStatus: r.status, airdrop, ...(await status()) });
 }

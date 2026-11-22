@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listMarkets } from "@/lib/store";
 import { settleIfDue } from "@/lib/settle";
+import { liquidateAll, pushPrices } from "@/lib/perps-admin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,5 +19,9 @@ export async function GET(_req: NextRequest) {
       results.push({ id: m.id, error: e.message });
     }
   }
-  return NextResponse.json({ settled: results, checked: due.length });
+  // Clout Perps keeper: refresh on-chain prices, then liquidate unhealthy positions.
+  const perps: any = {};
+  try { perps.prices = await pushPrices(240); } catch (e: any) { perps.pricesError = e.message; }
+  try { perps.liquidations = await liquidateAll(); } catch (e: any) { perps.liqError = e.message; }
+  return NextResponse.json({ settled: results, checked: due.length, perps });
 }

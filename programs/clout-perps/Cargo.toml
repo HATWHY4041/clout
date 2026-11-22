@@ -2,6 +2,7 @@
 name = "clout-perps"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.84"
 description = "Clout Perps: perpetual futures on a token's Clout (hype) Score"
 
 [lib]

@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="top">
             <Link href="/" className="logo">CLOUT<span>.</span></Link>
             <nav>
+              <Link href="/perps">Perps</Link>
               <Link href="/#board">Board</Link>
               <Link href="/#markets">Markets</Link>
               <Link href="/how">How it works</Link>

@@ -16,6 +16,8 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { connection, houseKeypair, perpsProgramKeypair } from "./house";
+import { Connection } from "@solana/web3.js";
+import { RPC_URL } from "./config";
 
 export const LOADER = new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111");
 const SO_URL = "https://raw.githubusercontent.com/HATWHY4041/clout/main/program-build/clout_perps.so";
@@ -88,20 +90,20 @@ export async function createBuffer() {
   return { signature: await sendAndConfirmTransaction(connection, tx, [house], { commitment: "confirmed" }), buffer: address.toBase58() };
 }
 
-/** Write up to `max` missing chunks into the buffer, in parallel batches. */
-export async function writeChunks(max = 120) {
+/** Write missing chunks (random order) for up to ~40s, pacing under public RPC limits. */
+export async function writeChunks(max = 400) {
+  const started = Date.now();
   const { so, sha } = await fetchSo();
   const house = houseKeypair();
   const { address } = await bufferAddress(sha);
   const info = await connection.getAccountInfo(address);
   if (!info) throw new Error("Create the buffer first");
-  const todo = chunksNeeded(so, info.data, BUFFER_META).slice(0, max);
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-  const sigs: string[] = [];
-  const errors: string[] = [];
-  for (let i = 0; i < todo.length; i += 20) {
-    const batch = todo.slice(i, i + 20);
-    await Promise.all(batch.map(async (idx) => {
+  const todo = chunksNeeded(so, info.data, BUFFER_META).sort(() => Math.random() - 0.5).slice(0, max);
+  const fast = new Connection(RPC_URL, { commitment: "confirmed", disableRetryOnRateLimit: true });
+  let { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  let sent = 0, limited = 0;
+  for (let i = 0; i < todo.length && Date.now() - started < 40_000; i += 4) {
+    await Promise.all(todo.slice(i, i + 4).map(async (idx) => {
       const bytes = so.subarray(idx * CHUNK, (idx + 1) * CHUNK);
       const data = Buffer.concat([u32(1), u32(idx * CHUNK), u64(bytes.length), bytes]);
       const tx = new Transaction({ feePayer: house.publicKey, blockhash, lastValidBlockHeight }).add(
@@ -111,18 +113,15 @@ export async function writeChunks(max = 120) {
         ], data }),
       );
       tx.sign(house);
-      try {
-        sigs.push(await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true }));
-      } catch (e: any) {
-        errors.push(String(e.message).slice(0, 100));
-      }
+      try { await fast.sendRawTransaction(tx.serialize(), { skipPreflight: true }); sent++; }
+      catch { limited++; }
     }));
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, limited > 0 ? 1500 : 1100));
+    if (limited > 20) break;
   }
-  // give the cluster a moment, then report what is still missing
-  await new Promise((r) => setTimeout(r, 4000));
+  await new Promise((r) => setTimeout(r, 5000));
   const after = await connection.getAccountInfo(address, "confirmed");
-  return { sent: sigs.length, errors: errors.slice(0, 3), stillMissing: after ? chunksNeeded(so, after.data, BUFFER_META).length : null };
+  return { sent, limited, stillMissing: after ? chunksNeeded(so, after.data, BUFFER_META).length : null, secs: Math.round((Date.now() - started) / 1000) };
 }
 
 /** Deploy (first time) or upgrade the program from a fully written buffer. */

@@ -1,0 +1,19 @@
+[package]
+name = "clout-perps"
+version = "0.1.0"
+edition = "2021"
+description = "Clout Perps: perpetual futures on a token's Clout (hype) Score"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "clout_perps"
+
+[features]
+default = []
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.31.1", default-features = false, features = ["token", "token_2022", "associated_token"] }

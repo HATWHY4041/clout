@@ -1,0 +1,30 @@
+name: Build perps program
+on:
+  push:
+    paths: ["programs/**", "Cargo.toml", "Cargo.lock", ".github/workflows/build-program.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.13/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      - name: Test
+        run: cargo test -p clout-perps
+      - name: Build SBF
+        run: |
+          cargo build-sbf --manifest-path programs/clout-perps/Cargo.toml --sbf-out-dir program-build
+          sha256sum program-build/clout_perps.so | cut -d' ' -f1 > program-build/clout_perps.sha256
+          rm -f program-build/*.json
+          ls -la program-build
+      - name: Commit artifact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add program-build
+          git diff --cached --quiet || (git commit -m "Build clout_perps.so [skip ci]" && git push)

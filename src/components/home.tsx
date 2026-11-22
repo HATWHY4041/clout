@@ -19,6 +19,22 @@ export function CreateMarket() {
   const [threshold, setThreshold] = useState(50);
   const [duration, setDuration] = useState(DURATIONS[2].secs);
   const [creating, setCreating] = useState(false);
+  const [ticker, setTicker] = useState("");
+
+  async function findTicker() {
+    setErr(null); setLoading(true);
+    try {
+      const r = await fetch(`/api/score?q=${encodeURIComponent(ticker.trim())}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      setTokens([j]);
+      choose(j);
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const isTweet = /(x|twitter)\.com\/[^/]+\/status/i.test(input);
 
@@ -32,7 +48,7 @@ export function CreateMarket() {
         setTweet(j.tweet);
         setTokens(j.tokens);
         if (j.tokens[0]) choose(j.tokens[0]);
-        else setErr("No Solana token found in that tweet. Type the ticker below instead (e.g. WIF).");
+        else setErr("No Solana token found in that tweet. Type which token it's about below.");
       } else {
         const r = await fetch(`/api/score?q=${encodeURIComponent(input.trim())}`);
         const j = await r.json();
@@ -87,6 +103,13 @@ export function CreateMarket() {
           <div className="tweet-h"><b>{tweet.author}</b> <span>@{tweet.handle}</span></div>
           <p>{tweet.text}</p>
         </blockquote>
+      )}
+
+      {tweet && !pick && (
+        <div className="inputrow" style={{ marginTop: 12 }}>
+          <input value={ticker} onChange={(e) => setTicker(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ticker && findTicker()} placeholder="Which token? e.g. BONK or a mint address" />
+          <button className="btn ghost" disabled={!ticker || loading} onClick={findTicker}>Find</button>
+        </div>
       )}
 
       {tokens.length > 1 && (

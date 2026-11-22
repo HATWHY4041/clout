@@ -47,7 +47,7 @@ export async function getTokenClout(mint: string, revalidate = 60): Promise<Toke
   const { score, breakdown } = computeClout(inputs);
   return {
     mint,
-    symbol: (tok.symbol || pools[0].attributes.name?.split(" / ")[0] || "???").toUpperCase(),
+    symbol: (tok.symbol || pools[0].attributes.name?.split(" / ")[0] || "???").replace(/^\$/, "").toUpperCase(),
     name: tok.name || tok.symbol || mint.slice(0, 6),
     image: tok.image_url && tok.image_url !== "missing.png" ? tok.image_url : null,
     priceUsd: pools[0].attributes.base_token_price_usd ? Number(pools[0].attributes.base_token_price_usd) : null,

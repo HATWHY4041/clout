@@ -83,8 +83,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       await refresh();
       const ata = getAssociatedTokenAddressSync(USDC_MINT, keypair.publicKey);
       const exists = await connection.getAccountInfo(ata).catch(() => null);
-      if (!exists && !localStorage.getItem(KEY + ":funded")) {
-        localStorage.setItem(KEY + ":funded", "1");
+      const lamports = await connection.getBalance(keypair.publicKey).catch(() => 0);
+      if ((!exists || lamports < 5_000_000) && !sessionStorage.getItem(KEY + ":funded")) {
+        sessionStorage.setItem(KEY + ":funded", "1");
         await fund();
       }
     })();

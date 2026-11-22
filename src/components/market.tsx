@@ -58,9 +58,9 @@ export function MarketView({ id, site }: { id: number; site: string }) {
     if (!cm || !w.keypair) return;
     setBusy(true); setNote(null);
     try {
-      if (action === "buy" && w.usdc < raw / 1e6) {
+      if ((action === "buy" && w.usdc < raw / 1e6) || w.sol < 0.006) {
         const e = await w.fund();
-        if (e) throw new Error(`Not enough test USDC (${e})`);
+        if (e && action === "buy" && w.usdc < raw / 1e6) throw new Error(`Not enough test USDC (${e})`);
       }
       const fresh = (await fetch(`/api/markets/${id}`, { cache: "no-store" }).then((r) => r.json())).chain ?? cm;
       const { tx, expectedOut } = await buildTradeTx(w.connection, w.keypair.publicKey, fresh, action, s, raw);
@@ -82,6 +82,7 @@ export function MarketView({ id, site }: { id: number; site: string }) {
     if (!cm || !w.keypair) return;
     setBusy(true); setNote(null);
     try {
+      if (w.sol < 0.006) await w.fund();
       const sig = await w.send(await buildClaimTx(w.connection, w.keypair.publicKey, cm));
       setNote({ ok: true, sig, text: "Winnings claimed" });
       await load();

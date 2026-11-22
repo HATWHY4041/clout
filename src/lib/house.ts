@@ -4,14 +4,26 @@ import { Connection, Keypair, PublicKey, Transaction, VersionedTransaction } fro
 import { AnchorProvider } from "@anchor-lang/core";
 import { PmAmmClient } from "@pm-amm/sdk";
 import bs58 from "bs58";
+import { createHash } from "crypto";
 import { FAUCET_URL, PROGRAM_ID, RPC_URL, USDC_MINT } from "./config";
 
 export const connection = new Connection(RPC_URL, "confirmed");
 
+let cached: Keypair | null = null;
+/**
+ * The devnet house wallet. Uses HOUSE_SECRET_KEY if set; otherwise it is derived
+ * from the project's own server-side Blob secret, so no key is ever handled by hand.
+ */
 export function houseKeypair(): Keypair {
+  if (cached) return cached;
   const s = process.env.HOUSE_SECRET_KEY;
-  if (!s) throw new Error("HOUSE_SECRET_KEY is not set");
-  return Keypair.fromSecretKey(bs58.decode(s));
+  if (s) cached = Keypair.fromSecretKey(bs58.decode(s));
+  else {
+    const base = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!base) throw new Error("House wallet not configured");
+    cached = Keypair.fromSeed(createHash("sha256").update(`clout-house-v1:${base}`).digest());
+  }
+  return cached;
 }
 
 export function houseClient(): PmAmmClient {

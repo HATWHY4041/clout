@@ -5,11 +5,8 @@ import { settleIfDue } from "@/lib/settle";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Called every ~10 minutes by a free GitHub Actions schedule: settles closed markets. */
-export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+/** Public and idempotent (settling is deterministic). Called every ~10 minutes by a free GitHub Actions schedule: settles closed markets. */
+export async function GET(_req: NextRequest) {
   const now = Math.floor(Date.now() / 1000);
   const due = (await listMarkets()).filter((m) => !m.resolution && m.endTs <= now);
   const results: any[] = [];

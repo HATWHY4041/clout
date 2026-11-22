@@ -9,4 +9,4 @@ jobs:
     steps:
       - name: Settle markets and record Clout
         run: |
-          curl -sS -m 60 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.SITE_URL }}/api/cron"
+          curl -sS -m 60 "${{ vars.SITE_URL }}/api/cron"
